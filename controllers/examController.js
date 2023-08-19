@@ -1,7 +1,8 @@
 //const bcrypt = require('bcrypt');
 //const jwt = require('jsonwebtoken');
 //const { jwtSecret } = require('../configPar');
-const { getPetsExceptMineLikedDisliked, setLikeRelation, setDislikeRelation, getSecondaryImagesURL, getLikedPets } = require('../Database/queries');
+const { getPetsExceptMineLikedDisliked, setLikeRelation, setDislikeRelation, getSecondaryImagesURL, getLikedPets,
+  getTeacherData, getTeacherQuestionsPageData } = require('../Database/queries');
 
 
 module.exports.exam_get = async (req, res) => {
@@ -17,8 +18,80 @@ module.exports.answer_post = async (req, res) => {
 }
 
 module.exports.questions_get = async (req, res) => {
+  try {
+    const userId = req.decodedToken.id;
+    const data = await getTeacherQuestionsPageData(userId);
+    console.log(data[0]);
+    console.log(`data length = ${data.length}`);
 
+    var questionsArray = [];
+    
+    for (let k = 0; k < data.length; k++) {
+      const questionObject = {}; // Create an object for each question
+      questionObject.question = data[k].question;
+      questionObject.correct_answer = data[k].correct_answer;
+      questionObject.wrong_answer_1 = data[k].wrong_answer_1;
+      questionObject.wrong_answer_2 = data[k].wrong_answer_2;
+      questionObject.wrong_answer_3 = data[k].wrong_answer_3;
+      questionObject.wrong_answer_4 = data[k].wrong_answer_4;
+      questionObject.number = k+1;
+      questionObject.media_type = data[k].media_type == null || data[k].media_type == "null" ? "" : data[k].media_type;
+      questionObject.media_name = data[k].media_name == null || data[k].media_name == "null" ? "" : data[k].media_name;
+      questionObject.media_url = data[k].media_url == null || data[k].media_url == "null" ? "" : data[k].media_url;
+      questionObject.media_source = data[k].media_source == null ||data[k]. media_source == "null" ? "" : data[k].media_source;
+      questionsArray.push(questionObject); // Add the question object to the array
+    }
+
+    const questionsPageData = {
+      teacherName: data[0].name,
+      subject: data[0].subject, // considering each teacher has just one subject
+      questionsArray: questionsArray
+    }
+
+    res.status(200).json(questionsPageData);   
+
+  } catch(e) {
+    console.log(e.toString());
+    res.status(400).json({message: e.toString()});
+  }
 }
+
+
+//todo: I will use the for loop there probably
+module.exports.exam_get = async (req, res) => {
+  try {
+    const userId = req.decodedToken.id;
+    const data = await getTeacherQuestionsPageData(userId);
+    console.log(data[0]);
+    console.log(`data length = ${data.length}`);
+
+    var questionsArray = [];
+    
+    for (let k = 0; k < data.length; k++) {
+      const questionObject = {}; // Create an object for each question
+      questionObject.question = data[k].question;
+      questionObject.alternatives = shuffleArray([
+        data[k].correct_answer, data[k].wrong_answer_1, data[k].wrong_answer_2,
+        data[k].wrong_answer_3, data[k].wrong_answer_4
+      ]);
+      questionObject.number = k+1;
+      questionsArray.push(questionObject); // Add the question object to the array
+    }
+
+    const questionsPageData = {
+      teacherName: data[0].name,
+      subject: data[0].subject, // considering each teacher has just one subject
+      questionsArray: questionsArray
+    }
+
+    res.status(200).json(questionsPageData);   
+
+  } catch(e) {
+    console.log(e.toString());
+    res.status(400).json({message: e.toString()});
+  }
+}
+
 
 module.exports.questions_post = async (req, res) => {
 
@@ -136,6 +209,15 @@ module.exports.pets_grid_get = async (req, res) => {
     res.status(400).json({message: e.toString()});
   }
 
+
 }
+
+  function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
 
 

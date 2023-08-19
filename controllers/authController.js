@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../configPar');
 const { insertUser, getUserData, getLocationId, insertLocation,
-  getStudentData, getTeacherData } = require('../Database/queries');
+  getStudentData, getTeacherUserData } = require('../Database/queries');
 
 //todo: modify signup to sign students in the contest day
 module.exports.signup_post = async (req, res) => {
@@ -48,7 +48,7 @@ module.exports.login_post = async (req, res) => {
   try {
     var user;
     if (type == "teacher") {
-      user = await getTeacherData(name); //todo: create this function in proper file
+      user = await getTeacherUserData(name); //todo: create this function in proper file
     } else {
       user = await getStudentData(name); //todo: create this function in proper file
     }

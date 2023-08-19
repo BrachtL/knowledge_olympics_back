@@ -1,10 +1,45 @@
 const pool = require('./dbConfig');
 
 
-async function getTeacherData(name) {
-  return {
-    password: "$2a$10$HKR/kZqmM2bP8Cl3cqgcoO6doRUWYwD6.x68YluPo9yzDAE4Nb4R2", //test123
-    id: 12
+async function getTeacherQuestionsPageData(teacherId) {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT
+      teachers.name, teachers.subject,
+      questions.question, questions.correct_answer, questions.wrong_answer_1,
+      questions.wrong_answer_2, questions.wrong_answer_3, questions.wrong_answer_4,
+      questions.media_type, questions.media_name, questions.media_url, questions.media_source
+      FROM teachers
+      JOIN questions ON teachers.id = questions.id_teacher
+      WHERE questions.id_teacher = '${teacherId}'`);
+    connection.release();
+    console.log('getCredentials() return:', results[0]);
+    return results;
+  } catch (err) {
+    console.log('Error querying database: getCredentials', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+
+async function getTeacherUserData(name) {
+  console.log("checkpoint 2");
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT
+      id, password
+      FROM teachers
+      WHERE name = '${name}'`);
+    connection.release();
+    console.log(`getTeacherUserData(${name}) return:`, results[0]);
+    return results[0];
+  } catch (err) {
+    console.log(`Error querying database: getTeacherUserData(${name})`, err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
   }
 }
 
@@ -261,5 +296,6 @@ module.exports = {
   getLikedPets,
   
   getStudentData,
-  getTeacherData
+  getTeacherQuestionsPageData,
+  getTeacherUserData
 }
