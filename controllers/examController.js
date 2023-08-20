@@ -2,7 +2,7 @@
 //const jwt = require('jsonwebtoken');
 //const { jwtSecret } = require('../configPar');
 const { getPetsExceptMineLikedDisliked, setLikeRelation, setDislikeRelation, getSecondaryImagesURL, getLikedPets,
-  getTeacherData, getTeacherQuestionsPageData } = require('../Database/queries');
+  getTeacherData, getTeacherQuestionsPageData, updateQuestions } = require('../Database/queries');
 
 
 module.exports.exam_get = async (req, res) => {
@@ -17,6 +17,8 @@ module.exports.answer_post = async (req, res) => {
 
 }
 
+//todo: use req.decodedToken.type to check if it is a teacher, if it is not -> deny access
+//todo: use this type in every get and post request here
 module.exports.questions_get = async (req, res) => {
   try {
     const userId = req.decodedToken.id;
@@ -28,6 +30,7 @@ module.exports.questions_get = async (req, res) => {
     
     for (let k = 0; k < data.length; k++) {
       const questionObject = {}; // Create an object for each question
+      questionObject.id = data[k].id;
       questionObject.question = data[k].question;
       questionObject.correct_answer = data[k].correct_answer;
       questionObject.wrong_answer_1 = data[k].wrong_answer_1;
@@ -92,9 +95,22 @@ module.exports.exam_get = async (req, res) => {
   }
 }
 
-
+//todo: change it here and in frontend to update method
 module.exports.questions_post = async (req, res) => {
+  try {
+    const userId = req.decodedToken.id;
 
+    const message = await updateQuestions(userId, req.body);
+
+    res.status(200).json({
+      message: message
+    });
+
+  } catch(e) {
+
+    //res.status(400).json({});
+    res.status(400).json({message: e.toString()});
+  }
 }
 
 

@@ -7,7 +7,7 @@ async function getTeacherQuestionsPageData(teacherId) {
     const [results, fields] = await connection.query(`
       SELECT
       teachers.name, teachers.subject,
-      questions.question, questions.correct_answer, questions.wrong_answer_1,
+      questions. id, questions.question, questions.correct_answer, questions.wrong_answer_1,
       questions.wrong_answer_2, questions.wrong_answer_3, questions.wrong_answer_4,
       questions.media_type, questions.media_name, questions.media_url, questions.media_source
       FROM teachers
@@ -23,6 +23,41 @@ async function getTeacherQuestionsPageData(teacherId) {
   }
 }
 
+//todo: when teacher change media info, url will be wrong
+//maybe the best is to send these media info to a "moderator"/"manager"
+//and this person send media info to the questions table.
+//Until I implement this, it will be as it is now.
+async function updateQuestions(teacherId, questionsArray) {
+  try {
+    const connection = await pool.getConnection();
+    for(let k = 0; k < questionsArray.length; k++) {
+      const [results, fields] = await connection.query(`
+        UPDATE questions SET 
+        correct_answer = ?, media_name = ?,
+        media_source = ?, media_type = ?,
+        question = ?, wrong_answer_1 = ?, 
+        wrong_answer_2 = ?, wrong_answer_3 = ?, 
+        wrong_answer_4 = ? 
+        WHERE id_teacher = ? AND id = ?`,
+        [
+          questionsArray[k].correct_answer, questionsArray[k].media_name,
+          questionsArray[k].media_source, questionsArray[k].media_type,
+          questionsArray[k].question, questionsArray[k].wrong_answer_1,
+          questionsArray[k].wrong_answer_2, questionsArray[k].wrong_answer_3 ,
+          questionsArray[k].wrong_answer_4,
+          teacherId, questionsArray[k].id
+        ]);
+      console.log(`updateQuestions with teacherId = ${teacherId} and questionsArray[${k}] = ${JSON.stringify(questionsArray[k])} return: ${JSON.stringify(results)}`);
+    }
+    
+    connection.release();
+    return "success";
+  } catch (err) {
+    console.log('Error querying database: updateQuestions', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
 
 async function getTeacherUserData(name) {
   console.log("checkpoint 2");
@@ -297,5 +332,6 @@ module.exports = {
   
   getStudentData,
   getTeacherQuestionsPageData,
-  getTeacherUserData
+  getTeacherUserData,
+  updateQuestions
 }
