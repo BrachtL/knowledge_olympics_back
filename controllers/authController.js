@@ -99,8 +99,14 @@ module.exports.logout_get = async (req, res, decodedToken) => {
 
 
 function createToken(id, type) {
+  let expirationTime;
+  if(type == "teacher") {
+    expirationTime = 5184000 //2 months
+  } else {
+    expirationTime = 7200 //2 hours (exam duration) todo: check it, maybe it will be 1h45m
+  }
+  console.log(`${type} token created with ${expirationTime}`);
   return jwt.sign({id: id, type: type}, jwtSecret, {
-    expiresIn: 30 * 60 //30 min in secs //todo: change this expiresIn to
-    //test duration time + 15min for students or "forever" for teachers? 
+    expiresIn: expirationTime 
   });
 }
