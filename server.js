@@ -9,6 +9,12 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use((req, res, next) => {
+  // Set cache-control headers to prevent caching
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  next();
+});
+
 require('dotenv').config()
 
 //middleware (ponte entre requests)

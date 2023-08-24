@@ -3,8 +3,6 @@ const authController = require('../controllers/authController');
 const { requireAuth } = require('../middleware/authMiddleware');
 const examController = require('../controllers/examController');
 
-//todo: change this file name to routes.js
-
 const router = Router();
 
 //AUTH

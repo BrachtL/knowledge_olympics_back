@@ -95,7 +95,6 @@ module.exports.exam_get = async (req, res) => {
   }
 }
 
-//todo: change it here and in frontend to update method
 module.exports.questions_post = async (req, res) => {
   try {
     const userId = req.decodedToken.id;

@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../configPar');
 const { insertUser, getUserData, getLocationId, insertLocation,
-  getStudentData, getTeacherUserData } = require('../Database/queries');
+  getStudentData, setStudentData, getTeacherUserData } = require('../Database/queries');
 
 //todo: modify signup to sign students in the contest day
 module.exports.signup_post = async (req, res) => {
@@ -43,34 +43,50 @@ module.exports.signup_post = async (req, res) => {
 module.exports.login_post = async (req, res) => {
   console.log("LOGIN POST")
 
-  const { name, password, type } = req.body;
+  let { name, password, type, birthdate, numberId, classroom, school } = req.body;
   
   try {
-    var user;
     if (type == "teacher") {
-      user = await getTeacherUserData(name); //todo: create this function in proper file
-    } else {
-      user = await getStudentData(name); //todo: create this function in proper file
-    }
-    
-
-    if(user) {
-      console.log("Start bcrypt.compare()");
-      const auth = await bcrypt.compare(password, user.password);
-      console.log("Finish bcrypt.compare()");
-      console.log("AUTH: ", auth);
-      if(auth) {
-        //send access token to the client
-        const token = createToken(user.id, type);
-        res.status(200).json({
-            token: token
-            //todo: does front need some other data to be sent?
-          });
+      let user = await getTeacherUserData(name);
+      if(user) {
+        console.log("Start bcrypt.compare()");
+        const auth = await bcrypt.compare(password, user.password);
+        console.log("Finish bcrypt.compare()");
+        console.log("AUTH: ", auth);
+        if(auth) {
+          //send access token to the client
+          const token = createToken(user.id, type);
+          console.log(`${type} ${name} logged`);
+          res.status(200).json({
+              token: token
+            });
+        } else {
+          throw Error('incorrect password');
+        }
       } else {
-        throw Error('incorrect password');
+        throw Error('incorrect email');
       }
     } else {
-      throw Error('incorrect email');
+      let user = await getStudentData(name);
+      if(user) {
+        const token = createToken(user.id, type);
+        console.log(`${type} ${name} logged`);
+        res.status(200).json({
+          token: token
+        });
+        
+      } else {
+        //todo: use the setStudentData here and make res.status(200).json()
+        let userId = await setStudentData(name, birthdate, numberId, classroom, school);
+        const token = createToken(userId, type);
+        console.log(`${type} ${name} logged`);
+        res.status(200).json({
+          token: token
+        });
+
+
+        //throw Error('incorrect email'); //todo: change this error message. It will probably be something like: user already logged in 
+      }
     }
     
 

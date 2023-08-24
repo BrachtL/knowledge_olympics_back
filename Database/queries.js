@@ -60,7 +60,7 @@ async function updateQuestions(teacherId, questionsArray) {
 }
 
 async function getTeacherUserData(name) {
-  console.log("checkpoint 2");
+  //console.log("checkpoint 2");
   try {
     const connection = await pool.getConnection();
     const [results, fields] = await connection.query(`
@@ -79,12 +79,46 @@ async function getTeacherUserData(name) {
 }
 
 async function getStudentData(name) {
-  return {
-    password: "$2a$10$HKR/kZqmM2bP8Cl3cqgcoO6doRUWYwD6.x68YluPo9yzDAE4Nb4R2", //test123
-    id: 12
+  //console.log("checkpoint 2");
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT
+      id, name, number, classroom, school
+      FROM students
+      WHERE LOWER(name) = LOWER('${name}')`);
+    connection.release();
+    console.log(`getStudentData(${name}) return:`, results[0]);
+    return results[0];
+  } catch (err) {
+    console.log(`Error querying database: getStudentData(${name})`, err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
   }
 }
 
+async function setStudentData(name, birthdate, numberId, classroom, school) {
+  try {
+    const connection = await pool.getConnection();
+
+    const [results, fields] = await connection.query(`
+      INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime) 
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [name, birthdate, numberId, classroom, school]);    
+    connection.release();
+
+    console.log(`
+      INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime) 
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [name, birthdate, numberId, classroom, school]); 
+    console.log('setStudentData() return:', results);
+    return results.insertId;
+  } catch (err) {
+    console.log('Error querying database: setStudentData', err);
+    console.log("A MENSAGEM É:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
 
 
 
@@ -333,5 +367,6 @@ module.exports = {
   getStudentData,
   getTeacherQuestionsPageData,
   getTeacherUserData,
-  updateQuestions
+  updateQuestions,
+  setStudentData
 }
