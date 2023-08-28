@@ -1,5 +1,42 @@
 const pool = require('./dbConfig');
 
+async function getExamPageStudentData(studentId) {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT name, number, classroom, school
+      FROM students
+      WHERE id = '${studentId}'`);
+    connection.release();
+    console.log(`getExamPageStudentData(${studentId}) return:`, results[0]);
+    return results[0];
+  } catch (err) {
+    console.log('Error querying database: getExamPageStudentData', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+
+async function getExamPageQuestionsData(studentId) {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT
+      id, question, correct_answer, wrong_answer_1, wrong_answer_2, 
+      wrong_answer_3, wrong_answer_4, media_type, media_name,
+      media_url, media_source, media_text
+      FROM questions
+      WHERE id_teacher = '${2}' OR id_teacher = ${3}`); //todo: remove this ehre cluase from here?
+    connection.release();
+    console.log(`getExamPageQuestionsData(${studentId}) return:`, results[0]);
+    return results;
+  } catch (err) {
+    console.log('Error querying database: getExamPageQuestionsData', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
 
 async function getTeacherQuestionsPageData(teacherId) {
   try {
@@ -7,7 +44,7 @@ async function getTeacherQuestionsPageData(teacherId) {
     const [results, fields] = await connection.query(`
       SELECT
       teachers.name, teachers.subject,
-      questions. id, questions.question, questions.correct_answer, questions.wrong_answer_1,
+      questions.id, questions.question, questions.correct_answer, questions.wrong_answer_1,
       questions.wrong_answer_2, questions.wrong_answer_3, questions.wrong_answer_4,
       questions.media_type, questions.media_name, questions.media_url, questions.media_source
       FROM teachers
@@ -368,5 +405,7 @@ module.exports = {
   getTeacherQuestionsPageData,
   getTeacherUserData,
   updateQuestions,
-  setStudentData
+  setStudentData,
+  getExamPageQuestionsData,
+  getExamPageStudentData
 }

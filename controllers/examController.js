@@ -1,13 +1,9 @@
 //const bcrypt = require('bcrypt');
 //const jwt = require('jsonwebtoken');
 //const { jwtSecret } = require('../configPar');
-const { getPetsExceptMineLikedDisliked, setLikeRelation, setDislikeRelation, getSecondaryImagesURL, getLikedPets,
-  getTeacherData, getTeacherQuestionsPageData, updateQuestions } = require('../Database/queries');
-
-
-module.exports.exam_get = async (req, res) => {
-
-}
+const { getPetsExceptMineLikedDisliked, setLikeRelation, setDislikeRelation, getSecondaryImagesURL,
+  getLikedPets, getTeacherData, getTeacherQuestionsPageData, updateQuestions, getExamPageQuestionsData,
+  getExamPageStudentData } = require('../Database/queries');
 
 module.exports.exam_post = async (req, res) => {
 
@@ -64,28 +60,102 @@ module.exports.questions_get = async (req, res) => {
 module.exports.exam_get = async (req, res) => {
   try {
     const userId = req.decodedToken.id;
-    const data = await getTeacherQuestionsPageData(userId);
-    console.log(data[0]);
-    console.log(`data length = ${data.length}`);
+    
+    const studentData = await getExamPageStudentData(userId);
+    const questionsData = await getExamPageQuestionsData(userId);
+  
+
+    console.log(`studentData = ${JSON.stringify(studentData)}`);
+    //console.log(`studentData length = ${studentData.length}`);
+
+    console.log(`questionsData = ${JSON.stringify(questionsData)}`);
+    console.log(`questionsData length = ${questionsData.length}`);
 
     var questionsArray = [];
+    var orderedQuestionsArray = [];
+    var mediasArray = [];
+
+
+    var mediaOtherArray = [];
+    var mediaAudioArray = [];
     
-    for (let k = 0; k < data.length; k++) {
+    
+    for (let k = 0; k < questionsData.length; k++) {
       const questionObject = {}; // Create an object for each question
-      questionObject.question = data[k].question;
-      questionObject.alternatives = shuffleArray([
-        data[k].correct_answer, data[k].wrong_answer_1, data[k].wrong_answer_2,
-        data[k].wrong_answer_3, data[k].wrong_answer_4
+      questionObject.questionText = questionsData[k].question;
+      questionObject.options = shuffleArray([
+        questionsData[k].correct_answer, questionsData[k].wrong_answer_1, questionsData[k].wrong_answer_2,
+        questionsData[k].wrong_answer_3, questionsData[k].wrong_answer_4
       ]);
-      questionObject.number = k+1;
-      questionsArray.push(questionObject); // Add the question object to the array
+
+      if(questionObject.media_type != "no") {
+        //todo: I have to assure that front check media_name length 3 or more
+        //before send to api to send to DB
+        if(questionObject.media_type == "audio") {
+          if (!mediaAudioArray.some(media => media.media_name == questionObject.media_name)) {
+            mediaAudioArray.push({
+              media_name: questionObject.media_name,
+              media_type: questionObject.media_type    
+            });
+          } 
+        } else {
+          if (!mediaOtherArray.some(media => media.media_name == questionObject.media_name)) {
+            mediaOtherArray.push({
+              media_name: questionObject.media_name,
+              media_type: questionObject.media_type    
+            });
+          }
+        }
+      } else if(!mediaOtherArray.some(media => media.media_type == "no")) {
+        questionObject.media_name = '';
+        mediaOtherArray.push({
+          media_name: '',
+          media_type: "no"
+        });
+      }  
+      
+      //questionObject.number = k+1; //todo: use index in front
+      questionsArray.push(questionObject);
     }
 
-    const questionsPageData = {
-      teacherName: data[0].name,
-      subject: data[0].subject, // considering each teacher has just one subject
-      questionsArray: questionsArray
+    //even starts with Audio
+    mediaAudioArray = shuffleArray(mediaAudioArray);
+    mediaOtherArray = shuffleArray(mediaOtherArray);
+    if((userId % 2) == 0) {
+      mediasArray.push(mediaAudioArray);
+      mediasArray.push(mediaOtherArray);
+    } else {
+      mediasArray.push(mediaOtherArray);
+      mediasArray.push(mediaAudioArray);
     }
+
+    questionsArray = shuffleArray(questionsArray);    
+    let i = 0;
+
+    for(let k = 0; k < mediasArray.length; k++) {
+
+      while(i < questionsArray.length) {
+        if(questionsArray[i].media_name == mediasArray[k].media_name) {
+          questionsArray[i].number = i + 1;
+          orderedQuestionsArray.push(questionsArray[i]);
+          questionsArray.splice(i,1);
+          continue;
+        }
+        i++;
+      }
+      i = 0;
+    }
+
+
+    const questionsPageData = {
+      studentName: studentData.name,
+      classroom: studentData.classroom,
+      numberId: studentData.number,
+      school: studentData.school,
+      questionsArray: orderedQuestionsArray
+    }
+
+    console.log(JSON.stringify(questionsPageData));
 
     res.status(200).json(questionsPageData);   
 
