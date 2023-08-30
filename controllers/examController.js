@@ -88,6 +88,11 @@ module.exports.exam_get = async (req, res) => {
         questionsData[k].wrong_answer_3, questionsData[k].wrong_answer_4
       ]);
 
+      questionObject.media_type = questionsData[k].media_type;
+      questionObject.media_name = questionsData[k].media_name;
+      console.log(`code 00001: `, questionObject.media_type, questionObject.media_name);
+      //todo: add what more is needed
+
       if(questionObject.media_type != "no") {
         //todo: I have to assure that front check media_name length 3 or more
         //before send to api to send to DB
@@ -106,13 +111,15 @@ module.exports.exam_get = async (req, res) => {
             });
           }
         }
-      } else if(!mediaOtherArray.some(media => media.media_type == "no")) {
+      } else {
         questionObject.media_name = '';
-        mediaOtherArray.push({
-          media_name: '',
-          media_type: "no"
-        });
-      }  
+        if(!mediaOtherArray.some(media => media.media_type == "no")) {
+          mediaOtherArray.push({
+            media_name: '',
+            media_type: "no"
+          });
+        }
+      }
       
       //questionObject.number = k+1; //todo: use index in front
       questionsArray.push(questionObject);
@@ -122,26 +129,53 @@ module.exports.exam_get = async (req, res) => {
     mediaAudioArray = shuffleArray(mediaAudioArray);
     mediaOtherArray = shuffleArray(mediaOtherArray);
     if((userId % 2) == 0) {
-      mediasArray.push(mediaAudioArray);
-      mediasArray.push(mediaOtherArray);
+      for(let k = 0; k < mediaAudioArray.length; k++) {
+        mediasArray.push(mediaAudioArray[k]);
+      }
+
+      for(let k = 0; k < mediaOtherArray.length; k++) {
+        mediasArray.push(mediaOtherArray[k]);
+      }
+      
+      //mediasArray.push(mediaAudioArray);
+      //mediasArray.push(mediaOtherArray);
     } else {
-      mediasArray.push(mediaOtherArray);
-      mediasArray.push(mediaAudioArray);
+      for(let k = 0; k < mediaOtherArray.length; k++) {
+        mediasArray.push(mediaOtherArray[k]);
+      }
+
+      for(let k = 0; k < mediaAudioArray.length; k++) {
+        mediasArray.push(mediaAudioArray[k]);
+      }
+
+
+      //mediasArray.push(mediaOtherArray);
+      //mediasArray.push(mediaAudioArray);
     }
 
-    questionsArray = shuffleArray(questionsArray);    
-    let i = 0;
+    console.log(`code 00002: mediasArray: `, JSON.stringify(mediasArray));
+
+    questionsArray = shuffleArray(questionsArray); 
+    
+    console.log(`code 00003: questionsArray: `, JSON.stringify(questionsArray));
+    
+    //let i = 0;
 
     for(let k = 0; k < mediasArray.length; k++) {
 
-      while(i < questionsArray.length) {
+      for(let i = 0; i < questionsArray.length; i++) {
         if(questionsArray[i].media_name == mediasArray[k].media_name) {
-          questionsArray[i].number = i + 1;
+          questionsArray[i].number = orderedQuestionsArray.length + 1;
           orderedQuestionsArray.push(questionsArray[i]);
+          console.log(`k = ${k} and i = ${i}`);
+          console.log(`media_name: ${questionsArray[i].media_name}`);
+          console.log(`media_type questionsArray: ${questionsArray[i].media_type}`);
+          console.log(`media_type orderedQuestionsArray: ${JSON.stringify(orderedQuestionsArray)}`);
           questionsArray.splice(i,1);
-          continue;
+          i--;
+          //continue;
         }
-        i++;
+        //i++;
       }
       i = 0;
     }
