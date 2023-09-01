@@ -90,6 +90,8 @@ module.exports.exam_get = async (req, res) => {
 
       questionObject.media_type = questionsData[k].media_type;
       questionObject.media_name = questionsData[k].media_name;
+      questionObject.media_text = questionsData[k].media_text;
+      questionObject.media_url = questionsData[k].media_url;
       console.log(`code 00001: `, questionObject.media_type, questionObject.media_name);
       //todo: add what more is needed
 
@@ -163,9 +165,13 @@ module.exports.exam_get = async (req, res) => {
 
     for(let k = 0; k < mediasArray.length; k++) {
 
+      let isFirstMedia = true;
+
       for(let i = 0; i < questionsArray.length; i++) {
         if(questionsArray[i].media_name == mediasArray[k].media_name) {
           questionsArray[i].number = orderedQuestionsArray.length + 1;
+          questionsArray[i].isFirstMedia = isFirstMedia;
+          isFirstMedia = false;
           orderedQuestionsArray.push(questionsArray[i]);
           console.log(`k = ${k} and i = ${i}`);
           console.log(`media_name: ${questionsArray[i].media_name}`);
@@ -177,7 +183,11 @@ module.exports.exam_get = async (req, res) => {
         }
         //i++;
       }
-      i = 0;
+      //i = 0;
+    }
+
+    for(let k = 0; k < orderedQuestionsArray.length; k++) {
+
     }
 
 
