@@ -3,10 +3,27 @@
 //const { jwtSecret } = require('../configPar');
 const { getPetsExceptMineLikedDisliked, setLikeRelation, setDislikeRelation, getSecondaryImagesURL,
   getLikedPets, getTeacherData, getTeacherQuestionsPageData, updateQuestions, getExamPageQuestionsData,
-  getExamPageStudentData } = require('../Database/queries');
+  getExamPageStudentData, updateExamOptions, getStudentOptions, createStudentOptions } = require('../Database/queries');
 
+//todo: change post method here and in frontend to patch (or put)
 module.exports.exam_post = async (req, res) => {
+  try {
+    const userId = req.decodedToken.id;
+    console.log("checkpoint 00005: ", JSON.stringify(req.body));
 
+    const message = await updateExamOptions(userId, req.body);
+
+    //todo: set a db student's var (I have to create it) to finished, then the answers can't be change anymore
+
+    res.status(200).json({
+      message: message
+    });
+
+  } catch(e) {
+
+    //res.status(400).json({});
+    res.status(400).json({message: e.toString()});
+  }
 }
 
 module.exports.answer_post = async (req, res) => {
@@ -63,7 +80,13 @@ module.exports.exam_get = async (req, res) => {
     
     const studentData = await getExamPageStudentData(userId);
     const questionsData = await getExamPageQuestionsData(userId);
-  
+
+    const areOptionsCreated = await getStudentOptions(userId, questionsData);
+    console.log("checkpoint 00008: ", areOptionsCreated);
+    if(areOptionsCreated == 0) {
+      console.log("checkpoint 00009")
+      const createOptions = await createStudentOptions(userId, questionsData);
+    }
 
     console.log(`studentData = ${JSON.stringify(studentData)}`);
     //console.log(`studentData length = ${studentData.length}`);
@@ -87,6 +110,8 @@ module.exports.exam_get = async (req, res) => {
         questionsData[k].correct_answer, questionsData[k].wrong_answer_1, questionsData[k].wrong_answer_2,
         questionsData[k].wrong_answer_3, questionsData[k].wrong_answer_4
       ]);
+
+      questionObject.id = questionsData[k].id;
 
       questionObject.media_type = questionsData[k].media_type;
       questionObject.media_name = questionsData[k].media_name;
@@ -185,11 +210,6 @@ module.exports.exam_get = async (req, res) => {
       }
       //i = 0;
     }
-
-    for(let k = 0; k < orderedQuestionsArray.length; k++) {
-
-    }
-
 
     const questionsPageData = {
       studentName: studentData.name,

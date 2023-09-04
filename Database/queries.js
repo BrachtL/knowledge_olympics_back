@@ -60,6 +60,79 @@ async function getTeacherQuestionsPageData(teacherId) {
   }
 }
 
+async function getStudentOptions(userId, questionsData) {
+  try {
+    const connection = await pool.getConnection();
+    const[results, fields] = await connection.query(`
+    SELECT are_options_created
+    FROM students
+    WHERE id = '${userId}'`);
+
+    connection.release();
+    console.log("checkpoint 00006: ", JSON.stringify(results));
+    return results[0].are_options_created;
+  } catch (err) {
+    console.log('Error querying database: getStudentOptions', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+async function createStudentOptions(studentId, questions) {
+  try {
+    console.log("checkpoint 00007: questions.length = ", questions.length);
+    const connection = await pool.getConnection();
+    for(let k = 0; k < questions.length; k++) {
+      const [results, fields] = await connection.query(`
+        INSERT INTO student_answers (id_students, id_questions, answer)
+        values (?, ?, ?)`,
+        [studentId, questions[k].id, '']);
+      console.log(`createStudentOptions with studentId = ${studentId} and questions[${k}] = ${JSON.stringify(questions[k])} return: ${JSON.stringify(results)}`);
+    }
+
+    const [results, fields] = await connection.query(`
+      UPDATE students
+      SET are_options_created = ?
+      WHERE id = ?`,
+      [true, studentId]);
+
+    connection.release();
+    return results;
+  } catch (err) {
+    console.log('Error querying database: createStudentOptions', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+//todo: I have to check on frontend if the object has questionsArray.length elements
+//if the object has not all elements, ask to select an option for every question
+//todo: consider lock to edition some db fields
+async function updateExamOptions(studentId, examOptions) {
+  try {
+    const connection = await pool.getConnection();
+    for(let k = 0; k < examOptions.length; k++) {
+      const [results, fields] = await connection.query(`
+        UPDATE student_answers
+        SET answer = ?
+        WHERE id_students = ? AND id_questions = ?`,
+        [
+          examOptions[k].option,
+          studentId, examOptions[k].id
+        ]);
+      console.log(`updateExamOptions with studentId = ${studentId} and examOptions[${k}] = ${JSON.stringify(examOptions[k])} return: ${JSON.stringify(results)}`);
+    }
+    
+    connection.release();
+    return "success";
+  } catch (err) {
+    console.log('Error querying database: updateExamOptions', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+
 //todo: when teacher change media info, url will be wrong
 //maybe the best is to send these media info to a "moderator"/"manager"
 //and this person send media info to the questions table.
@@ -141,12 +214,12 @@ async function setStudentData(name, birthdate, numberId, classroom, school) {
     const [results, fields] = await connection.query(`
       INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime) 
       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [name, birthdate, numberId, classroom, school]);    
+      [name, birthdate, numberId, classroom, school]);
     connection.release();
 
     console.log(`
-      INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime) 
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime, are_options_created) 
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, FALSE)`,
       [name, birthdate, numberId, classroom, school]); 
     console.log('setStudentData() return:', results);
     return results.insertId;
@@ -407,5 +480,8 @@ module.exports = {
   updateQuestions,
   setStudentData,
   getExamPageQuestionsData,
-  getExamPageStudentData
+  getExamPageStudentData,
+  updateExamOptions,
+  createStudentOptions,
+  getStudentOptions
 }
