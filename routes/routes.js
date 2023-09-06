@@ -10,6 +10,7 @@ router.post('/login', authController.login_post); //todo: is it good?
 //router.post('/login/teacher', authController.login_teacher_post);
 router.get('/tokenTest', requireAuth, (req, res) => {res.send("All Right")});
 router.get('/logout', requireAuth, authController.logout_get);
+router.post('/matchCookie', requireAuth, authController.match_cookie_post);
 
 
 //QUESTIONS

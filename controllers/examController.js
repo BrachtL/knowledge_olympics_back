@@ -61,7 +61,8 @@ module.exports.questions_get = async (req, res) => {
     const questionsPageData = {
       teacherName: data[0].name,
       subject: data[0].subject, // considering each teacher has just one subject
-      questionsArray: questionsArray
+      questionsArray: questionsArray,
+      userId: userId
     }
 
     res.status(200).json(questionsPageData);   
@@ -216,7 +217,8 @@ module.exports.exam_get = async (req, res) => {
       classroom: studentData.classroom,
       numberId: studentData.number,
       school: studentData.school,
-      questionsArray: orderedQuestionsArray
+      questionsArray: orderedQuestionsArray,
+      userId: userId
     }
 
     console.log(JSON.stringify(questionsPageData));

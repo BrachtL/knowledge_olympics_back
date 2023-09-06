@@ -4,6 +4,33 @@ const { jwtSecret } = require('../configPar');
 const { insertUser, getUserData, getLocationId, insertLocation,
   getStudentData, setStudentData, getTeacherUserData } = require('../Database/queries');
 
+
+module.exports.match_cookie_post = async (req, res, decodedToken) => {
+  try {
+    console.log("checkpoint 00010");
+    console.log(req.decodedToken.id);
+    console.log(req.body.userId);
+
+    if(req.decodedToken.id == req.body.userId && req.decodedToken.type == req.body.type) {
+      res.status(200).json({
+        //"token": token
+        "message": "Success"
+      });
+    } else {
+      res.status(401).json({
+        //"token": token
+        "message": "match fail"
+      });
+    }
+
+  } catch(e) {
+    console.log(e);
+    //console.log(e.toString().includes("Duplicate entry") && e.toString().includes("email"));
+    res.status(400).json({message: e.toString()});
+  }
+}
+
+
 //todo: modify signup to sign students in the contest day
 module.exports.signup_post = async (req, res) => {
   
@@ -30,9 +57,9 @@ module.exports.signup_post = async (req, res) => {
     console.log("id -> ", id);
     
     res.status(200).json({
-        //"token": token
-        "message": "Success"
-      });
+      //"token": token
+      "message": "Success"
+    });
   } catch(e) {
     console.log(e);
     //console.log(e.toString().includes("Duplicate entry") && e.toString().includes("email"));
