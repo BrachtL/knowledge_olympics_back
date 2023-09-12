@@ -3,7 +3,27 @@
 //const { jwtSecret } = require('../configPar');
 const { getPetsExceptMineLikedDisliked, setLikeRelation, setDislikeRelation, getSecondaryImagesURL,
   getLikedPets, getTeacherData, getTeacherQuestionsPageData, updateQuestions, getExamPageQuestionsData,
-  getExamPageStudentData, updateExamOptions, getStudentOptions, createStudentOptions } = require('../Database/queries');
+  getExamPageStudentData, updateExamOptions, getStudentOptions, createStudentOptions, setFinish } = require('../Database/queries');
+
+  module.exports.exam_finish_post = async (req, res) => {
+    try {
+      const userId = req.decodedToken.id;
+      console.log("checkpoint 00016: Finish: ", userId);
+  
+      const message = await setFinish(userId);
+  
+      //todo: set a db student's var (I have to create it) to finished, then the answers can't be change anymore
+  
+      res.status(200).json({
+        message: message
+      });
+  
+    } catch(e) {
+  
+      //res.status(400).json({});
+      res.status(400).json({message: e.toString()});
+    }
+  }
 
 //todo: change post method here and in frontend to patch (or put)
 module.exports.exam_post = async (req, res) => {
@@ -80,6 +100,9 @@ module.exports.exam_get = async (req, res) => {
     const userId = req.decodedToken.id;
     
     const studentData = await getExamPageStudentData(userId);
+    if(studentData.is_finished) {
+      res.status(401).json(studentData);
+    }
     const questionsData = await getExamPageQuestionsData(userId);
 
     const areOptionsCreated = await getStudentOptions(userId, questionsData);

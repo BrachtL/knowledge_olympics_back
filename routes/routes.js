@@ -20,6 +20,8 @@ router.get('/exam', requireAuth, examController.exam_get);
 //post exam when finished by clickong on finish button
 router.post('/exam', requireAuth, examController.exam_post);
 
+router.post('/exam/finish', requireAuth, examController.exam_finish_post);
+
 //post an answer everytime change an answer (just that answer)
 router.post('/answer', requireAuth, examController.answer_post);
 

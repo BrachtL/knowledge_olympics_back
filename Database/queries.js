@@ -1,10 +1,30 @@
 const pool = require('./dbConfig');
 
+async function setFinish(studentId) {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      UPDATE students
+      SET is_finished = true
+      WHERE id = ?`,
+      [ studentId ]
+    );
+    console.log(`setFinish with studentId = ${studentId} return: ${JSON.stringify(results)}`);
+    
+    connection.release();
+    return "success";
+  } catch (err) {
+    console.log('Error querying database: setFinish', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
 async function getExamPageStudentData(studentId) {
   try {
     const connection = await pool.getConnection();
     const [results, fields] = await connection.query(`
-      SELECT name, number, classroom, school
+      SELECT name, number, classroom, school, is_finished, is_started
       FROM students
       WHERE id = '${studentId}'`);
     connection.release();
@@ -27,9 +47,19 @@ async function getExamPageQuestionsData(studentId) {
       wrong_answer_3, wrong_answer_4, media_type, media_name,
       media_url, media_source, media_text
       FROM questions
-      WHERE id_teacher = '${2}' OR id_teacher = ${3}`); //todo: remove this ehre cluase from here?
-    connection.release();
+      WHERE id_teacher = '${2}' OR id_teacher = ${3}`
+    ); //todo: remove this wehre cluase from here?
+    
     console.log(`getExamPageQuestionsData(${studentId}) return:`, results[0]);
+
+    const [results2, fields2] = await connection.query(`
+      UPDATE students
+      SET is_started = true
+      WHERE id = ?`,
+      [ studentId ]
+    );
+    
+    connection.release();
     return results;
   } catch (err) {
     console.log('Error querying database: getExamPageQuestionsData', err);
@@ -194,7 +224,7 @@ async function getStudentData(name) {
     const connection = await pool.getConnection();
     const [results, fields] = await connection.query(`
       SELECT
-      id, name, number, classroom, school
+      id, name, number, classroom, school, is_started, is_finished
       FROM students
       WHERE LOWER(name) = LOWER('${name}')`);
     connection.release();
@@ -483,5 +513,6 @@ module.exports = {
   getExamPageStudentData,
   updateExamOptions,
   createStudentOptions,
-  getStudentOptions
+  getStudentOptions,
+  setFinish
 }

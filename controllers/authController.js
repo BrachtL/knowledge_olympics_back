@@ -95,7 +95,7 @@ module.exports.login_post = async (req, res) => {
       }
     } else {
       let user = await getStudentData(name);
-      if(user) {
+      if(user && !user.is_started) {
         const token = createToken(user.id, type);
         console.log(`${type} ${name} logged`);
         res.status(200).json({
@@ -104,12 +104,23 @@ module.exports.login_post = async (req, res) => {
         
       } else {
         //todo: use the setStudentData here and make res.status(200).json()
+
+        //todo: unblock this code to allow create users, and remove the code down below
+        /*
         let userId = await setStudentData(name, birthdate, numberId, classroom, school);
         const token = createToken(userId, type);
         console.log(`${type} ${name} logged`);
         res.status(200).json({
           token: token
         });
+        */
+
+        if(user.is_started) {
+          throw Error('Este usuário já está realizando a prova!');
+        }
+        
+        //todo: remove this line below:
+        throw Error('A criação de usuário está desativada. Aguarde o horário da prova!');
 
 
         //throw Error('incorrect email'); //todo: change this error message. It will probably be something like: user already logged in 
