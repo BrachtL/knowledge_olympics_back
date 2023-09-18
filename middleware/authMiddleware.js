@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../configPar');
-//todo: check this code
 
 const requireAuth = (req, res, next) => {
   try {
@@ -10,7 +9,7 @@ const requireAuth = (req, res, next) => {
       jwt.verify(token, jwtSecret, (err, decodedToken) => {
         if(err) {
           console.log(err.message);
-          res.status(401).json({message: "token not valid"}) //todo
+          res.status(401).json({message: "token not valid"})
         } else {
           console.log("decodedToken: ", decodedToken);
           console.log("DATE NOW: ", Math.floor(Date.now() / 1000));
@@ -20,7 +19,7 @@ const requireAuth = (req, res, next) => {
       })
     } else {
       console.log("no token found");
-      res.status(401).json({message: "token not valid"}) //todo
+      res.status(401).json({message: "token not valid"})
     }
   } catch(e) {
     res.status(400).json({message: e.toString()});

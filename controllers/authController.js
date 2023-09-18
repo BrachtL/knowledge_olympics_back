@@ -115,7 +115,7 @@ module.exports.login_post = async (req, res) => {
         });
         */
 
-        if(user.is_started) {
+        if(user && user.is_started) {
           throw Error('Este usuário já está realizando a prova!');
         }
         
