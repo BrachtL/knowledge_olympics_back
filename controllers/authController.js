@@ -2,7 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { jwtSecret } = require('../configPar');
 const { insertUser, getUserData, getLocationId, insertLocation,
-  getStudentData, setStudentData, getTeacherUserData } = require('../Database/queries');
+  getStudentData, setStudentData, getTeacherUserData, getPeriodCodes } = require('../Database/queries');
 
 
 module.exports.match_cookie_post = async (req, res, decodedToken) => {
@@ -70,7 +70,7 @@ module.exports.signup_post = async (req, res) => {
 module.exports.login_post = async (req, res) => {
   console.log("LOGIN POST")
 
-  let { name, password, type, birthdate, numberId, classroom, school } = req.body;
+  let { name, password, type, birthdate, numberId, classroom, school, code } = req.body;
   
   try {
     if (type == "teacher") {
@@ -105,24 +105,33 @@ module.exports.login_post = async (req, res) => {
       } else {
         //todo: use the setStudentData here and make res.status(200).json()
 
-        //todo: unblock this code to allow create users, and remove the code down below
-        /*
-        let userId = await setStudentData(name, birthdate, numberId, classroom, school);
+        if(user && user.is_started) {
+          throw Error('Este usuário já está realizando a prova!');
+        }
+
+        let period;
+        if(code == process.env.OLYMPICS_PERIOD1) {
+          let period = (await getPeriodCodes()).period1;
+          if(period == 0) {
+            throw Error('Acesso negado: aguarde o horário da prova!')
+          }
+        } else if(code == process.env.OLYMPICS_PERIOD2) {
+          period  = (await getPeriodCodes()).period2;
+          if(period == 0) {
+            throw Error('Acesso negado: aguarde o horário da prova!')
+          }
+        } else if(code == process.env.OLYMPICS_MASTER) {
+          period = -1
+        } else {
+          throw Error('Acesso negado: identificador inválido');
+        }
+        let userId = await setStudentData(name, birthdate, numberId, classroom, school, period);
         const token = createToken(userId, type);
         console.log(`${type} ${name} logged`);
         res.status(200).json({
           token: token
         });
-        */
-
-        if(user && user.is_started) {
-          throw Error('Este usuário já está realizando a prova!');
-        }
         
-        //todo: remove this line below:
-        throw Error('A criação de usuário está desativada. Aguarde o horário da prova!');
-
-
         //throw Error('incorrect email'); //todo: change this error message. It will probably be something like: user already logged in 
       }
     }

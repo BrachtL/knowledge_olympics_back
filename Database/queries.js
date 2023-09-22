@@ -1,5 +1,35 @@
 const pool = require('./dbConfig');
 
+async function getPeriodCodes() {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT is_enabled
+      FROM codes
+      WHERE code = 'period1'`);
+    
+    const [results2, fields2] = await connection.query(`
+    SELECT is_enabled
+    FROM codes
+    WHERE code = 'period2'`);
+    
+    connection.release();
+    console.log(`period1 is: `, results[0].is_enabled);
+    console.log(`period2 is: `, results2[0].is_enabled);
+
+    const codes = {
+      period1: results[0].is_enabled,
+      period2: results2[0].is_enabled
+    }
+    
+    return codes;
+  } catch (err) {
+    console.log('Error querying database: getPeriodCodes', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
 async function setFinish(studentId) {
   try {
     const connection = await pool.getConnection();
@@ -237,20 +267,27 @@ async function getStudentData(name) {
   }
 }
 
-async function setStudentData(name, birthdate, numberId, classroom, school) {
+async function setStudentData(name, birthdate, numberId, classroom, school, period) {
   try {
     const connection = await pool.getConnection();
 
+    //todo: I am not setting are_options_created to 0, I think I should do it. Check it later.
     const [results, fields] = await connection.query(`
-      INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime) 
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-      [name, birthdate, numberId, classroom, school]);
+      INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime, period) 
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`,
+      [name, birthdate, numberId, classroom, school, period]);
     connection.release();
 
+    console.log(`
+    INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime, period) 
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`,
+      [name, birthdate, numberId, classroom, school, period]);
+    /*
     console.log(`
       INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime, are_options_created) 
       VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, FALSE)`,
       [name, birthdate, numberId, classroom, school]);
+    */
     console.log('setStudentData() return:', results);
     return results.insertId;
   } catch (err) {
@@ -262,10 +299,6 @@ async function setStudentData(name, birthdate, numberId, classroom, school) {
 
 
 module.exports = {
-  insertUser,
-  getUserData,
-  getLocationId,
-  insertLocation,
   getStudentData,
   getTeacherQuestionsPageData,
   getTeacherUserData,
@@ -276,5 +309,6 @@ module.exports = {
   updateExamOptions,
   createStudentOptions,
   getStudentOptions,
-  setFinish
+  setFinish,
+  getPeriodCodes
 }
