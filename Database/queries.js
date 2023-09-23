@@ -67,6 +67,27 @@ async function getExamPageStudentData(studentId) {
   }
 }
 
+async function getStudentAnswers(studentId) {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT
+      id_questions, answer
+      FROM student_answers
+      WHERE id_students = ?`,
+      [studentId]
+    ); 
+
+    console.log(`getStudentAnswers(${studentId}) return:`, JSON.stringify(results));
+
+    connection.release();
+    return results;
+  } catch (err) {
+    console.log('Error querying database: getStudentAnswers', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
 
 async function getExamPageQuestionsData(studentId) {
   try {
@@ -310,5 +331,6 @@ module.exports = {
   createStudentOptions,
   getStudentOptions,
   setFinish,
-  getPeriodCodes
+  getPeriodCodes,
+  getStudentAnswers
 }

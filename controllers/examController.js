@@ -2,7 +2,7 @@
 //const jwt = require('jsonwebtoken');
 //const { jwtSecret } = require('../configPar');
 const { getTeacherData, getTeacherQuestionsPageData, updateQuestions, getExamPageQuestionsData,
-  getExamPageStudentData, updateExamOptions, getStudentOptions, createStudentOptions, setFinish } = require('../Database/queries');
+  getExamPageStudentData, updateExamOptions, getStudentOptions, createStudentOptions, setFinish, getStudentAnswers } = require('../Database/queries');
 
 module.exports.exam_finish_post = async (req, res) => {
   try {
@@ -30,7 +30,7 @@ module.exports.exam_post = async (req, res) => {
 
     const studentData = await getExamPageStudentData(userId);
     if (studentData.is_finished) {
-      res.status(401).json(studentData);
+      res.status(401).json({message: "is_finished"});
       return;
     }
 
@@ -101,7 +101,7 @@ module.exports.exam_get = async (req, res) => {
 
     const studentData = await getExamPageStudentData(userId);
     if (studentData.is_finished) {
-      res.status(401).json(studentData);
+      res.status(401).json({message: "is_finished"});
       return;
     }
     const questionsData = await getExamPageQuestionsData(userId);
@@ -112,6 +112,12 @@ module.exports.exam_get = async (req, res) => {
       console.log("checkpoint 00009")
       const createOptions = await createStudentOptions(userId, questionsData);
     }
+
+    const previousMarkedOptions = await getStudentAnswers(userId);
+    const previousMarkedOptionsKV = previousMarkedOptions.reduce((acc, item) => {
+      acc[item.id_questions] = item.answer;
+      return acc;
+    }, {});
 
     console.log(`studentData = ${JSON.stringify(studentData)}`);
     //console.log(`studentData length = ${studentData.length}`);
@@ -241,7 +247,8 @@ module.exports.exam_get = async (req, res) => {
       numberId: studentData.number,
       school: studentData.school,
       questionsArray: orderedQuestionsArray,
-      userId: userId
+      userId: userId,
+      previousMarkedOptions: previousMarkedOptionsKV
     }
 
     console.log(JSON.stringify(questionsPageData));
