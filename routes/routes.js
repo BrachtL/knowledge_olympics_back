@@ -32,5 +32,9 @@ router.get('/questions', requireAuth, examController.questions_get);
 router.post('/questions', requireAuth, examController.questions_post)
 
 
+//CHECK RESULTS
+router.post('/check-results', examController.check_results_post);
+
+
 const teste = process.env.BFT_DB_HOST;
 module.exports = { router, teste }

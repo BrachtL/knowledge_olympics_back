@@ -2,7 +2,72 @@
 //const jwt = require('jsonwebtoken');
 //const { jwtSecret } = require('../configPar');
 const { getTeacherData, getTeacherQuestionsPageData, updateQuestions, getExamPageQuestionsData,
-  getExamPageStudentData, updateExamOptions, getStudentOptions, createStudentOptions, setFinish, getStudentAnswers } = require('../Database/queries');
+  getExamPageStudentData, updateExamOptions, getStudentOptions, createStudentOptions, setFinish,
+  getStudentAnswers, getRightAnswers, getStudentsAnswers, setRightAnswersAmount, setStudentsHitsById } = require('../Database/queries');
+
+
+module.exports.check_results_post = async (req, res) => {
+  try {
+    const password = req.body.password;
+
+    if(password != process.env.OLYMPICS_STATS_PASSWORD) {
+      res.status(400).json({ message: "wrong password" });
+      return;
+    }
+
+    //get rightAnswers from questions table (id, correct_answer, right_counter)
+    let rightAnswers = await getRightAnswers();
+
+    for(let k = 0; k < rightAnswers.length; k++) {
+      rightAnswers[k].right_counter = 0;
+    }
+
+    //get students answers from student_answers table (id_students, id_questions, answer)
+    const studentsAnswers = await getStudentsAnswers();
+
+    console.log("rightAnswers: ", JSON.stringify(rightAnswers));
+    console.log("studentsAnswers: ", JSON.stringify(studentsAnswers));
+
+    let questionsIdUserHit = [];
+    let questionsIdUserMissed = [];
+
+    for(let i = 0; i < studentsAnswers.length; i++) {
+      for(let j = 0; j < rightAnswers.length; j++) {
+        if(studentsAnswers[i].id_questions == rightAnswers[j].id) {
+          if(studentsAnswers[i].answer == rightAnswers[j].correct_answer) {
+            questionsIdUserHit.push(studentsAnswers[i].id_questions);
+            rightAnswers[j].right_counter++;
+          } else {
+            questionsIdUserMissed.push(studentsAnswers[i].id_questions);
+          }
+          break;
+        }
+      }
+      if(i+1 < studentsAnswers.length) {
+        if(studentsAnswers[i+1].id_students != studentsAnswers[i].id_students) {
+          await setStudentsHitsById(studentsAnswers[i].id_students, questionsIdUserHit, questionsIdUserMissed);
+          questionsIdUserHit = [];
+          questionsIdUserMissed = [];
+        }
+      } else {
+        await setStudentsHitsById(studentsAnswers[i].id_students, questionsIdUserHit, questionsIdUserMissed);
+        questionsIdUserHit = [];
+        questionsIdUserMissed = [];
+      }
+    }
+    
+    await setRightAnswersAmount(rightAnswers);
+
+    res.status(200).json({
+      message: "message"
+    });
+
+  } catch (e) {
+
+    //res.status(400).json({});
+    res.status(400).json({ message: e.toString() });
+  }
+}
 
 module.exports.exam_finish_post = async (req, res) => {
   try {

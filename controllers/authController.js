@@ -93,6 +93,17 @@ module.exports.login_post = async (req, res) => {
       } else {
         throw Error('incorrect email');
       }
+      //todo: remove this stats block?
+    } else if (type == "stats") {
+      if(password == process.env.OLYMPICS_STATS_PASSWORD) {
+        const token = createToken(1, type); //harcoded: there is just 1 stats, that is me
+        console.log(`${type} ${name} logged`);
+        res.status(200).json({
+          token: token
+        });
+      } else {
+        throw Error('incorrect password');
+      }
     } else {
       let user = await getStudentData(name);
       if(user && !user.is_started) {

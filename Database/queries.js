@@ -1,5 +1,114 @@
 const pool = require('./dbConfig');
 
+//todo: I have to put a lop inside the function to repeat the query for all the array
+//setRightAnswersAmount(rightAnswers) //on question_stats right_answers
+//(id, correct_answer, right_counter)
+async function setRightAnswersAmount(rightAnswers) {
+  try {
+    //console.log("checkpoint");
+    const connection = await pool.getConnection();
+
+    for (let k = 0; k < rightAnswers.length; k++) {
+      const [results, fields] = await connection.query(`
+        UPDATE questions_stats SET right_answers = ?
+        WHERE id_questions = ?`,
+        [rightAnswers[k].right_counter, rightAnswers[k].id]
+      );
+    }
+    
+    connection.release();
+    console.log(`setRightAnswersAmount with rightAnswers = ${rightAnswers}`);
+    return "success";
+  } catch (err) {
+    console.log('Error querying database: setRightAnswersAmount', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+
+async function setStudentsHitsById(studentId, questionsIdUserHit, questionsIdUserMissed) {
+  try {
+    //console.log("checkpoint");
+    const connection = await pool.getConnection();
+
+    for (let k = 0; k < questionsIdUserHit.length; k++) {
+      const [results, fields] = await connection.query(`
+        UPDATE student_answers SET is_right = TRUE
+        WHERE id_students = ? and id_questions = ?`,
+        [studentId, questionsIdUserHit[k]]
+      );
+    }
+
+    for (let k = 0; k < questionsIdUserMissed.length; k++) {
+      const [results2, fields2] = await connection.query(`
+        UPDATE student_answers SET is_right = FALSE
+        WHERE id_students = ? and id_questions = ?`,
+        [studentId, questionsIdUserMissed[k]]
+      );
+    }
+
+    const [results3, fields3] = await connection.query(`
+      UPDATE students SET score = ?
+      WHERE id = ?`,
+      [questionsIdUserHit.length, studentId]
+    );
+    
+    connection.release();
+    console.log(`setStudentsHitsById with studentId = ${studentId}\n
+      questionsIdUserHit = ${questionsIdUserHit}\n
+      questionsIdUserMissed = ${questionsIdUserMissed}\n
+      score = ${questionsIdUserHit.length}`
+    );
+    return "success";
+  } catch (err) {
+    console.log('Error querying database: setStudentsHitsById', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+//get students answers from student_answers table (id_students, id_questions, answer)
+async function getStudentsAnswers() {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT id_students, id_questions, answer
+      FROM student_answers
+    `);
+    
+    connection.release();
+    //console.log();
+    
+    return results;
+  } catch (err) {
+    console.log('Error querying database: getStudentsAnswers', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+
+}
+
+//get rightAnswers from questions table (id, correct_answer)
+async function getRightAnswers() {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT id, correct_answer
+      FROM questions
+    `);
+    
+    connection.release();
+    //console.log();
+    
+    return results;
+  } catch (err) {
+    console.log('Error querying database: getRightAnswers', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
 async function getPeriodCodes() {
   try {
     const connection = await pool.getConnection();
@@ -332,5 +441,9 @@ module.exports = {
   getStudentOptions,
   setFinish,
   getPeriodCodes,
-  getStudentAnswers
+  getStudentAnswers,
+  getRightAnswers,
+  getStudentsAnswers,
+  setRightAnswersAmount,
+  setStudentsHitsById
 }
