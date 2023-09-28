@@ -1,5 +1,81 @@
 const pool = require('./dbConfig');
 
+async function getStudentNames(studentsById) {
+  try {
+
+    const query = `
+      SELECT name
+      FROM students
+      WHERE id IN (${studentsById.join(', ')})
+      ORDER BY FIELD(id, ${studentsById.join(', ')})
+    `;
+    const connection = await pool.getConnection();
+
+    const [results, fields] = await connection.query(query);  
+    console.log(JSON.stringify(results));
+
+    console.log('checkpoint 00025 -> classification: ', results);
+
+    connection.release();
+    //console.log();
+
+    return results;
+  } catch (err) {
+    console.log('Error querying database: getStudentNames', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+async function setStatsPoints(statsPoints, studentId) {
+  try {
+    //console.log("checkpoint");
+    const connection = await pool.getConnection();
+
+    const [results, fields] = await connection.query(`
+      UPDATE students SET tiebreak_score = ?
+      WHERE id = ?`,
+      [statsPoints, studentId]
+    );
+
+    connection.release();
+    //console.log(`setStatsPoints with rightAnswers = ${JSON.stringify(rightAnswers)}`);
+    return "success";
+  } catch (err) {
+    console.log('Error querying database: setStatsPoints', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+async function getStatsPoints(questionsIdUserHit) {
+  try {
+    let statsCounter = 0;
+    const connection = await pool.getConnection();
+    for (let k = 0; k < questionsIdUserHit.length; k++) {
+      const [results, fields] = await connection.query(`
+        SELECT right_answers
+        FROM questions_stats
+        WHERE id_questions = ?`,
+        [questionsIdUserHit[k]]
+      );
+      statsCounter += results[0].right_answers;
+      console.log(JSON.stringify(results[0].right_answers));
+    }
+
+    console.log('checkpoint 00023 -> statsCounter: ', statsCounter);
+
+    connection.release();
+    //console.log();
+
+    return statsCounter;
+  } catch (err) {
+    console.log('Error querying database: getStatsPoints', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
 //todo: I have to put a lop inside the function to repeat the query for all the array
 //setRightAnswersAmount(rightAnswers) //on question_stats right_answers
 //(id, correct_answer, right_counter)
@@ -17,7 +93,7 @@ async function setRightAnswersAmount(rightAnswers) {
     }
     
     connection.release();
-    console.log(`setRightAnswersAmount with rightAnswers = ${rightAnswers}`);
+    console.log(`setRightAnswersAmount with rightAnswers = ${JSON.stringify(rightAnswers)}`);
     return "success";
   } catch (err) {
     console.log('Error querying database: setRightAnswersAmount', err);
@@ -445,5 +521,8 @@ module.exports = {
   getRightAnswers,
   getStudentsAnswers,
   setRightAnswersAmount,
-  setStudentsHitsById
+  setStudentsHitsById,
+  getStatsPoints,
+  setStatsPoints,
+  getStudentNames
 }

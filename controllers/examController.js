@@ -3,7 +3,8 @@
 //const { jwtSecret } = require('../configPar');
 const { getTeacherData, getTeacherQuestionsPageData, updateQuestions, getExamPageQuestionsData,
   getExamPageStudentData, updateExamOptions, getStudentOptions, createStudentOptions, setFinish,
-  getStudentAnswers, getRightAnswers, getStudentsAnswers, setRightAnswersAmount, setStudentsHitsById } = require('../Database/queries');
+  getStudentAnswers, getRightAnswers, getStudentsAnswers, setRightAnswersAmount, setStudentsHitsById,
+  getStatsPoints, setStatsPoints, getStudentNames } = require('../Database/queries');
 
 
 module.exports.check_results_post = async (req, res) => {
@@ -30,6 +31,7 @@ module.exports.check_results_post = async (req, res) => {
 
     let questionsIdUserHit = [];
     let questionsIdUserMissed = [];
+    let usersHits = [];
 
     for(let i = 0; i < studentsAnswers.length; i++) {
       for(let j = 0; j < rightAnswers.length; j++) {
@@ -46,17 +48,65 @@ module.exports.check_results_post = async (req, res) => {
       if(i+1 < studentsAnswers.length) {
         if(studentsAnswers[i+1].id_students != studentsAnswers[i].id_students) {
           await setStudentsHitsById(studentsAnswers[i].id_students, questionsIdUserHit, questionsIdUserMissed);
+          console.log(`checkpoint 00024 -> id_students = ${studentsAnswers[i].id_students}`);
+          usersHits.push({
+            studentId: studentsAnswers[i].id_students,
+            questionsIds: questionsIdUserHit,
+            statsPoints: await getStatsPoints(questionsIdUserHit)
+          })
+          setStatsPoints(usersHits[usersHits.length-1].statsPoints, usersHits[usersHits.length-1].studentId);
           questionsIdUserHit = [];
           questionsIdUserMissed = [];
         }
       } else {
         await setStudentsHitsById(studentsAnswers[i].id_students, questionsIdUserHit, questionsIdUserMissed);
+        console.log(`checkpoint 00024 -> id_students = ${studentsAnswers[i].id_students}`);
+        usersHits.push({
+          studentId: studentsAnswers[i].id_students,
+          questionsIds: questionsIdUserHit,
+          statsPoints: await getStatsPoints(questionsIdUserHit)
+        })
+        setStatsPoints(usersHits[usersHits.length-1].statsPoints, usersHits[usersHits.length-1].studentId);
         questionsIdUserHit = [];
         questionsIdUserMissed = [];
       }
     }
     
     await setRightAnswersAmount(rightAnswers);
+    console.log("checkpoint 00022");
+    //set tiebreak
+    //usersHits.sort((a, b) => b.questionsIds.length - a.questionsIds.length);
+
+    usersHits.sort((a, b) => {
+      // Compare by questionsIds in descending order
+      const compareQuestionsIds = b.questionsIds.length - a.questionsIds.length;
+    
+      // If questionsIds are equal, compare by statsPoints in ascending order
+      if (compareQuestionsIds === 0) {
+        return a.statsPoints - b.statsPoints;
+      }
+    
+      return compareQuestionsIds;
+    });
+
+    console.log("checkpoint 00021: ", usersHits);
+    //by here I have the usersHits properly sorted, I have to set the tiebreak_score field on DB in the code below
+
+
+    let studentsById = []
+    for(let k = 0; k < usersHits.length - 1; k++) {
+      studentsById.push(usersHits[k].studentId);
+    }
+    let classification = await getStudentNames(studentsById);
+
+    let classificationString = '';
+    for(let k = 0; k < classification.length; k++) {
+      classificationString += `${k + 1} - ${classification[k].name}\n`;
+    }
+
+    console.log("!!!  CLASSIFICAÇÃO FINAL  !!!");
+    console.log(classificationString);
+
 
     res.status(200).json({
       message: "message"
