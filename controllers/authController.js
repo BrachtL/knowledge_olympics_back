@@ -30,47 +30,10 @@ module.exports.match_cookie_post = async (req, res, decodedToken) => {
   }
 }
 
-
-//todo: modify signup to sign students in the contest day
-module.exports.signup_post = async (req, res) => {
-  
-  let { email, password, name, age, category, lat, lng, uf, city } = req.body;
-  //todo: validate strings email and password: length, special chars, etc. Here and in front-end. Here for security and front for usability
-  //done: front end already validates fields
-  
-  try {
-    const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash(password, salt);
-    
-    var locationId = await getLocationId(city, uf);
-
-    if (locationId == 0) {
-      locationId = await insertLocation(lat, lng, uf, city);
-    }
-
-    if (category == "Sou uma pessoa") {
-      category = "person"
-    }
-
-    const id = await insertUser(email, hashedPassword, name, age, category, undefined, locationId, undefined);
-    //const token = createToken(id);
-    console.log("id -> ", id);
-    
-    res.status(200).json({
-      //"token": token
-      "message": "Success"
-    });
-  } catch(e) {
-    console.log(e);
-    //console.log(e.toString().includes("Duplicate entry") && e.toString().includes("email"));
-    res.status(400).json({message: e.toString()});
-  }
-}
-
 module.exports.login_post = async (req, res) => {
   console.log("LOGIN POST")
 
-  let { name, password, type, birthdate, numberId, classroom, school, code } = req.body;
+  let { name, password, type, birthdate, numberId, classroom, school, code, logTo } = req.body;
   
   try {
     if (type == "teacher") {
@@ -91,20 +54,10 @@ module.exports.login_post = async (req, res) => {
           throw Error('incorrect password');
         }
       } else {
-        throw Error('incorrect email');
+        throw Error('incorrect user');
       }
       //todo: remove this stats block?
-    } else if (type == "stats") {
-      if(password == process.env.OLYMPICS_STATS_PASSWORD) {
-        const token = createToken(1, type); //harcoded: there is just 1 stats, that is me
-        console.log(`${type} ${name} logged`);
-        res.status(200).json({
-          token: token
-        });
-      } else {
-        throw Error('incorrect password');
-      }
-    } else {
+    } else if(type == "student" && logTo == 'exam') {
       let user = await getStudentData(name);
       if(user && !user.is_started) {
         const token = createToken(user.id, type);
@@ -144,6 +97,26 @@ module.exports.login_post = async (req, res) => {
         });
         
         //throw Error('incorrect email'); //todo: change this error message. It will probably be something like: user already logged in 
+      }
+    } else if(type == "student" && logTo == 'stats') {
+      let user = await getStudentData(name);
+      if(user) {
+        console.log("Start bcrypt.compare()");
+        const auth = await bcrypt.compare(password, user.password);
+        console.log("Finish bcrypt.compare()");
+        console.log("AUTH: ", auth);
+        if(auth) {
+          //send access token to the client
+          const token = createToken(user.id, type);
+          console.log(`${type} ${name} logged`);
+          res.status(200).json({
+              token: token
+            });
+        } else {
+          throw Error('incorrect password');
+        }
+      } else {
+        throw Error('incorrect user');
       }
     }
     

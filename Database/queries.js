@@ -1,5 +1,24 @@
 const pool = require('./dbConfig');
 
+async function getStatsData() {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT id, right_answers
+      FROM questions_stats
+    `);
+    
+    connection.release();
+    //console.log();
+    
+    return results;
+  } catch (err) {
+    console.log('Error querying database: getStatsData', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
 async function getStudentNames(studentsById) {
   try {
 
@@ -457,10 +476,11 @@ async function getTeacherUserData(name) {
 async function getStudentData(name) {
   //console.log("checkpoint 2");
   try {
-    const connection = await pool.getConnection();
+    const connection = await pool.getConnection(); 
+    //todo: add the password on db and update API code with this code here
     const [results, fields] = await connection.query(`
       SELECT
-      id, name, number, classroom, school, is_started, is_finished
+      id, name, number, classroom, school, is_started, is_finished, password
       FROM students
       WHERE LOWER(name) = LOWER('${name}')`);
     connection.release();
@@ -524,5 +544,6 @@ module.exports = {
   setStudentsHitsById,
   getStatsPoints,
   setStatsPoints,
-  getStudentNames
+  getStudentNames,
+  getStatsData
 }

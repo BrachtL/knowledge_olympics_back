@@ -36,5 +36,8 @@ router.post('/questions', requireAuth, examController.questions_post)
 router.post('/check-results', examController.check_results_post);
 
 
+//Statistics
+router.get('/stats-data', requireAuth, examController.stats_data_get);
+
 const teste = process.env.BFT_DB_HOST;
 module.exports = { router, teste }
