@@ -4,51 +4,69 @@
 const { getTeacherData, getTeacherQuestionsPageData, updateQuestions, getExamPageQuestionsData,
   getExamPageStudentData, updateExamOptions, getStudentOptions, createStudentOptions, setFinish,
   getStudentAnswers, getRightAnswers, getStudentsAnswers, setRightAnswersAmount, setStudentsHitsById,
-  getStatsPoints, setStatsPoints, getStudentNames, getStatsData } = require('../Database/queries');
+  getStatsPoints, setStatsPoints, getStudentNames, getStatsData, getStatsPageQuestionsData, 
+  getStudentAnswersById, getTeacherName } = require('../Database/queries');
 
 
 module.exports.stats_data_get = async (req, res) => {
   try {
     
     const userId = req.decodedToken.id;
-    const data = await getStatsData();
-    console.log(JSON.stringify(data));
-    console.log(`data length = ${data.length}`);
+    let name = '';
+    let answers = [];
+    let answersKV = [];
+    const statsData = await getStatsData();
+    console.log(JSON.stringify(statsData));
+    console.log(`statsData length = ${statsData.length}`);
+  
+    let questionsData = await getStatsPageQuestionsData();
+    console.log("questionsData: \n", JSON.stringify(questionsData));
+
+    for (let k = 0; k < questionsData.length; k++) {
+      //questionsData.questionText = questionsData[k].question;
+      questionsData[k].options = [
+        questionsData[k].correct_answer, questionsData[k].wrong_answer_1, questionsData[k].wrong_answer_2,
+        questionsData[k].wrong_answer_3, questionsData[k].wrong_answer_4
+      ];
+      questionsData[k].number = statsData[k].id;
+      questionsData[k].questionText = questionsData[k].question;
+      answers[k] = {
+        id_questions: questionsData[k].id, 
+        answer: questionsData[k].correct_answer
+      }
+    }
+
 
     if(req.decodedToken.type == "student") {
-      const studentExam = 0; //getStudentAnswers
+      answers = await getStudentAnswersById(userId);
+      console.log(`studentAnswers(${userId}): \n`, JSON.stringify(answers));
+      name = await getStudentNames([userId]);
+      name = name[0].name;
+      console.log("student name is: ", name);
+      answersKV = answers.reduce((acc, item) => {
+        acc[item.id_questions] = item.answer;
+        return acc;
+      }, {});
+    } else if(req.decodedToken.type == "teacher") {
+      name = await getTeacherName(userId);
+      console.log("teacher name is: ", name);
+      answersKV = answers.reduce((acc, item) => {
+        acc[item.id_questions] = item.answer;
+        return acc;
+      }, {});
     }
 
-    //todo: resume from here
-    ///////////////////////
+    console.log("answersKV: ", answersKV);
 
-    var questionsArray = [];
-
-    for (let k = 0; k < data.length; k++) {
-      const questionObject = {}; // Create an object for each question
-      questionObject.id = data[k].id;
-      questionObject.question = data[k].question;
-      questionObject.correct_answer = data[k].correct_answer;
-      questionObject.wrong_answer_1 = data[k].wrong_answer_1;
-      questionObject.wrong_answer_2 = data[k].wrong_answer_2;
-      questionObject.wrong_answer_3 = data[k].wrong_answer_3;
-      questionObject.wrong_answer_4 = data[k].wrong_answer_4;
-      questionObject.number = k + 1;
-      questionObject.media_type = data[k].media_type == null || data[k].media_type == "null" ? "" : data[k].media_type;
-      questionObject.media_name = data[k].media_name == null || data[k].media_name == "null" ? "" : data[k].media_name;
-      questionObject.media_url = data[k].media_url == null || data[k].media_url == "null" ? "" : data[k].media_url;
-      questionObject.media_source = data[k].media_source == null || data[k].media_source == "null" ? "" : data[k].media_source;
-      questionsArray.push(questionObject); // Add the question object to the array
-    }
-
-    const questionsPageData = {
-      teacherName: data[0].name,
-      subject: data[0].subject, // considering each teacher has just one subject
-      questionsArray: questionsArray,
+    const statsPageData = {
+      name: name,
+      questionsData: questionsData,
+      markedOptions: answersKV,
+      statsData: statsData,
       userId: userId
     }
 
-    res.status(200).json(questionsPageData);
+    res.status(200).json(statsPageData);
 
   } catch (e) {
     console.log(e.toString());

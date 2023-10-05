@@ -1,5 +1,71 @@
 const pool = require('./dbConfig');
 
+async function getTeacherName(teacherId) {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT name
+      FROM teachers
+      WHERE id = ?`,
+      [teacherId]
+    );
+
+    console.log(`getTeacherName() return:`, results[0]);
+
+    connection.release();
+    return results[0].name;
+  } catch (err) {
+    console.log('Error querying database: getTeacherName', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+async function getStatsPageQuestionsData() {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT
+      id, question, correct_answer, wrong_answer_1, wrong_answer_2, 
+      wrong_answer_3, wrong_answer_4, media_type, media_name,
+      media_url, media_source, media_text
+      FROM questions
+      WHERE id_teacher = '${2}' OR id_teacher = ${3}`
+    ); //todo: remove these teachers harcoded 
+
+    console.log(`getStatsPageQuestionsData() return:`, results[0]);
+
+    connection.release();
+    return results;
+  } catch (err) {
+    console.log('Error querying database: getStatsPageQuestionsData', err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+}
+
+async function getStudentAnswersById(studentId) {
+  try {
+    const connection = await pool.getConnection();
+    const [results, fields] = await connection.query(`
+      SELECT id_questions, answer
+      FROM student_answers
+      WHERE id_students = ?`,
+      [studentId]
+    );
+    
+    connection.release();
+    //console.log();
+    
+    return results;
+  } catch (err) {
+    console.log(`Error querying database: getStudentAnswersById(${studentId})`, err);
+    console.log("THE MESSAGE IS:  ->> ", err.sqlMessage, " <<-");
+    throw new Error(err.sqlMessage);
+  }
+
+}
+
 async function getStatsData() {
   try {
     const connection = await pool.getConnection();
@@ -545,5 +611,8 @@ module.exports = {
   getStatsPoints,
   setStatsPoints,
   getStudentNames,
-  getStatsData
+  getStatsData,
+  getStatsPageQuestionsData,
+  getStudentAnswersById,
+  getTeacherName
 }
