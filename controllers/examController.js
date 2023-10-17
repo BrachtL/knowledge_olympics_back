@@ -57,7 +57,7 @@ module.exports.stats_data_get = async (req, res) => {
     }
 
     console.log("answersKV: ", answersKV);
-
+    
     const statsPageData = {
       name: name,
       questionsData: questionsData,
@@ -94,51 +94,57 @@ module.exports.check_results_post = async (req, res) => {
     //get students answers from student_answers table (id_students, id_questions, answer)
     const studentsAnswers = await getStudentsAnswers();
 
-    console.log("rightAnswers: ", JSON.stringify(rightAnswers));
-    console.log("studentsAnswers: ", JSON.stringify(studentsAnswers));
+    //console.log("rightAnswers: ", JSON.stringify(rightAnswers));
+    //console.log("studentsAnswers: ", JSON.stringify(studentsAnswers));
 
     let questionsIdUserHit = [];
     let questionsIdUserMissed = [];
     let usersHits = [];
 
+    let questionsIdUsersHit = [];
+    let questionsIdUsersMissed = [];
+
     for(let i = 0; i < studentsAnswers.length; i++) {
       for(let j = 0; j < rightAnswers.length; j++) {
         if(studentsAnswers[i].id_questions == rightAnswers[j].id) {
           if(studentsAnswers[i].answer == rightAnswers[j].correct_answer) {
-            questionsIdUserHit.push(studentsAnswers[i].id_questions);
+            //questionsIdUserHit.push(studentsAnswers[i].id_questions);
+            if(!questionsIdUsersHit[studentsAnswers[i].id_students]) {
+              questionsIdUsersHit[studentsAnswers[i].id_students] = [];
+            }
+            questionsIdUsersHit[studentsAnswers[i].id_students].push(studentsAnswers[i].id_questions);
             rightAnswers[j].right_counter++;
           } else {
-            questionsIdUserMissed.push(studentsAnswers[i].id_questions);
+            //questionsIdUserMissed.push(studentsAnswers[i].id_questions);
+            if(!questionsIdUsersMissed[studentsAnswers[i].id_students]) {
+              questionsIdUsersMissed[studentsAnswers[i].id_students] = [];
+            }
+            questionsIdUsersMissed[studentsAnswers[i].id_students].push(studentsAnswers[i].id_questions);
           }
           break;
         }
       }
-      if(i+1 < studentsAnswers.length) {
-        if(studentsAnswers[i+1].id_students != studentsAnswers[i].id_students) {
-          await setStudentsHitsById(studentsAnswers[i].id_students, questionsIdUserHit, questionsIdUserMissed);
-          console.log(`checkpoint 00024 -> id_students = ${studentsAnswers[i].id_students}`);
-          usersHits.push({
-            studentId: studentsAnswers[i].id_students,
-            questionsIds: questionsIdUserHit,
-            statsPoints: await getStatsPoints(questionsIdUserHit)
-          })
-          setStatsPoints(usersHits[usersHits.length-1].statsPoints, usersHits[usersHits.length-1].studentId);
-          questionsIdUserHit = [];
-          questionsIdUserMissed = [];
-        }
-      } else {
-        await setStudentsHitsById(studentsAnswers[i].id_students, questionsIdUserHit, questionsIdUserMissed);
-        console.log(`checkpoint 00024 -> id_students = ${studentsAnswers[i].id_students}`);
+    }
+
+    //const nonSparseQuestionsIdUsersHit = questionsIdUsersHit.filter(Boolean);
+    //const nonSparseQuestionsIdUsersMissed = questionsIdUsersMissed.filter(Boolean);
+    
+    for(let k = 0; k < questionsIdUsersHit.length; k++) {
+    //if(i+1 < studentsAnswers.length) {
+      //if(studentsAnswers[i+1].id_students != studentsAnswers[i].id_students) {
+      if(questionsIdUsersHit[k]) {
+        await setStudentsHitsById(k, questionsIdUsersHit[k], questionsIdUsersMissed[k]);
+        console.log(`checkpoint 00024 -> id_students = ${k}`);
         usersHits.push({
-          studentId: studentsAnswers[i].id_students,
-          questionsIds: questionsIdUserHit,
-          statsPoints: await getStatsPoints(questionsIdUserHit)
+          studentId: k,
+          questionsIds: questionsIdUsersHit[k],
+          statsPoints: await getStatsPoints(questionsIdUsersHit[k])
         })
         setStatsPoints(usersHits[usersHits.length-1].statsPoints, usersHits[usersHits.length-1].studentId);
         questionsIdUserHit = [];
         questionsIdUserMissed = [];
       }
-    }
+    } 
     
     await setRightAnswersAmount(rightAnswers);
     console.log("checkpoint 00022");
@@ -162,7 +168,7 @@ module.exports.check_results_post = async (req, res) => {
 
 
     let studentsById = []
-    for(let k = 0; k < usersHits.length - 1; k++) {
+    for(let k = 0; k < usersHits.length; k++) {
       studentsById.push(usersHits[k].studentId);
     }
     let classification = await getStudentNames(studentsById);
@@ -183,6 +189,7 @@ module.exports.check_results_post = async (req, res) => {
   } catch (e) {
 
     //res.status(400).json({});
+    console.log(e.toString());
     res.status(400).json({ message: e.toString() });
   }
 }
@@ -209,7 +216,7 @@ module.exports.exam_finish_post = async (req, res) => {
 module.exports.exam_post = async (req, res) => {
   try {
     const userId = req.decodedToken.id;
-    console.log("checkpoint 00005: ", JSON.stringify(req.body));
+    //console.log("checkpoint 00005: ", JSON.stringify(req.body));
 
     const studentData = await getExamPageStudentData(userId);
     if (studentData.is_finished) {
@@ -244,8 +251,8 @@ module.exports.questions_get = async (req, res) => {
     }
     const userId = req.decodedToken.id;
     const data = await getTeacherQuestionsPageData(userId);
-    console.log(data[0]);
-    console.log(`data length = ${data.length}`);
+    //console.log(data[0]);
+    //console.log(`data length = ${data.length}`);
 
     var questionsArray = [];
 
@@ -294,9 +301,9 @@ module.exports.exam_get = async (req, res) => {
     const questionsData = await getExamPageQuestionsData(userId);
 
     const areOptionsCreated = await getStudentOptions(userId, questionsData);
-    console.log("checkpoint 00008: ", areOptionsCreated);
+    //console.log("checkpoint 00008: ", areOptionsCreated);
     if (areOptionsCreated == 0) {
-      console.log("checkpoint 00009")
+      //console.log("checkpoint 00009")
       const createOptions = await createStudentOptions(userId, questionsData);
     }
 
@@ -309,8 +316,8 @@ module.exports.exam_get = async (req, res) => {
     console.log(`studentData = ${JSON.stringify(studentData)}`);
     //console.log(`studentData length = ${studentData.length}`);
 
-    console.log(`questionsData = ${JSON.stringify(questionsData)}`);
-    console.log(`questionsData length = ${questionsData.length}`);
+    //console.log(`questionsData = ${JSON.stringify(questionsData)}`);
+    //console.log(`questionsData length = ${questionsData.length}`);
 
     var questionsArray = [];
     var orderedQuestionsArray = [];
@@ -335,7 +342,7 @@ module.exports.exam_get = async (req, res) => {
       questionObject.media_name = questionsData[k].media_name;
       questionObject.media_text = questionsData[k].media_text;
       questionObject.media_url = questionsData[k].media_url;
-      console.log(`code 00001: `, questionObject.media_type, questionObject.media_name);
+      //console.log(`code 00001: `, questionObject.media_type, questionObject.media_name);
       //add what more is needed
 
       if (questionObject.media_type != "no") {
@@ -397,11 +404,11 @@ module.exports.exam_get = async (req, res) => {
       //mediasArray.push(mediaAudioArray);
     }
 
-    console.log(`code 00002: mediasArray: `, JSON.stringify(mediasArray));
+    //console.log(`code 00002: mediasArray: `, JSON.stringify(mediasArray));
 
     questionsArray = shuffleArray(questionsArray);
 
-    console.log(`code 00003: questionsArray: `, JSON.stringify(questionsArray));
+    //console.log(`code 00003: questionsArray: `, JSON.stringify(questionsArray));
 
     //let i = 0;
 
@@ -415,10 +422,10 @@ module.exports.exam_get = async (req, res) => {
           questionsArray[i].isFirstMedia = isFirstMedia;
           isFirstMedia = false;
           orderedQuestionsArray.push(questionsArray[i]);
-          console.log(`k = ${k} and i = ${i}`);
-          console.log(`media_name: ${questionsArray[i].media_name}`);
-          console.log(`media_type questionsArray: ${questionsArray[i].media_type}`);
-          console.log(`media_type orderedQuestionsArray: ${JSON.stringify(orderedQuestionsArray)}`);
+          //console.log(`k = ${k} and i = ${i}`);
+          //console.log(`media_name: ${questionsArray[i].media_name}`);
+          //console.log(`media_type questionsArray: ${questionsArray[i].media_type}`);
+          //console.log(`media_type orderedQuestionsArray: ${JSON.stringify(orderedQuestionsArray)}`);
           questionsArray.splice(i, 1);
           i--;
           //continue;
@@ -438,7 +445,7 @@ module.exports.exam_get = async (req, res) => {
       previousMarkedOptions: previousMarkedOptionsKV
     }
 
-    console.log(JSON.stringify(questionsPageData));
+    //console.log(JSON.stringify(questionsPageData));
 
     res.status(200).json(questionsPageData);
 

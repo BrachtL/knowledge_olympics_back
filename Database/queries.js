@@ -328,7 +328,7 @@ async function getExamPageStudentData(studentId) {
       FROM students
       WHERE id = '${studentId}'`);
     connection.release();
-    console.log(`getExamPageStudentData(${studentId}) return:`, results[0]);
+    //console.log(`getExamPageStudentData(${studentId}) return:`, results[0]);
     return results[0];
   } catch (err) {
     console.log('Error querying database: getExamPageStudentData', err);
@@ -348,7 +348,7 @@ async function getStudentAnswers(studentId) {
       [studentId]
     ); 
 
-    console.log(`getStudentAnswers(${studentId}) return:`, JSON.stringify(results));
+    //console.log(`getStudentAnswers(${studentId}) return:`, JSON.stringify(results));
 
     connection.release();
     return results;
@@ -371,7 +371,7 @@ async function getExamPageQuestionsData(studentId) {
       WHERE id_teacher = '${2}' OR id_teacher = ${3}`
     ); //todo: remove these teachers harcoded 
 
-    console.log(`getExamPageQuestionsData(${studentId}) return:`, results[0]);
+    //console.log(`getExamPageQuestionsData(${studentId}) return:`, results[0]);
 
     const [results2, fields2] = await connection.query(`
       UPDATE students
@@ -420,7 +420,7 @@ async function getStudentOptions(userId, questionsData) {
     WHERE id = '${userId}'`);
 
     connection.release();
-    console.log("checkpoint 00006: ", JSON.stringify(results));
+    //console.log("checkpoint 00006: ", JSON.stringify(results));
     return results[0].are_options_created;
   } catch (err) {
     console.log('Error querying database: getStudentOptions', err);
@@ -431,14 +431,14 @@ async function getStudentOptions(userId, questionsData) {
 
 async function createStudentOptions(studentId, questions) {
   try {
-    console.log("checkpoint 00007: questions.length = ", questions.length);
+    //console.log("checkpoint 00007: questions.length = ", questions.length);
     const connection = await pool.getConnection();
     for (let k = 0; k < questions.length; k++) {
       const [results, fields] = await connection.query(`
         INSERT INTO student_answers (id_students, id_questions, answer)
         values (?, ?, ?)`,
         [studentId, questions[k].id, '']);
-      console.log(`createStudentOptions with studentId = ${studentId} and questions[${k}] = ${JSON.stringify(questions[k])} return: ${JSON.stringify(results)}`);
+      //console.log(`createStudentOptions with studentId = ${studentId} and questions[${k}] = ${JSON.stringify(questions[k])} return: ${JSON.stringify(results)}`);
     }
 
     const [results, fields] = await connection.query(`
@@ -550,7 +550,7 @@ async function getStudentData(name) {
       FROM students
       WHERE LOWER(name) = LOWER('${name}')`);
     connection.release();
-    console.log(`getStudentData(${name}) return:`, results[0]);
+    //console.log(`getStudentData(${name}) return:`, results[0]);
     return results[0];
   } catch (err) {
     console.log(`Error querying database: getStudentData(${name})`, err);
@@ -559,28 +559,24 @@ async function getStudentData(name) {
   }
 }
 
-async function setStudentData(name, birthdate, numberId, classroom, school, period) {
+async function setStudentData(name, birthdate, numberId, classroom, school, period, hashedPassword) {
   try {
     const connection = await pool.getConnection();
 
     //todo: I am not setting are_options_created to 0, I think I should do it. Check it later.
     const [results, fields] = await connection.query(`
-      INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime, period) 
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`,
-      [name, birthdate, numberId, classroom, school, period]);
+      INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime, period, password) 
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)`,
+      [name, birthdate, numberId, classroom, school, period, hashedPassword]);
     connection.release();
 
-    console.log(`
-    INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime, period) 
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?)`,
-      [name, birthdate, numberId, classroom, school, period]);
-    /*
-    console.log(`
-      INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime, are_options_created) 
-      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, FALSE)`,
-      [name, birthdate, numberId, classroom, school]);
+    /*console.log(`
+    INSERT INTO students (name, birthdate, number, classroom, school, creation_datetime, period, password) 
+      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, ?, ?)`,
+      [name, birthdate, numberId, classroom, school, period, hashedPassword]);
     */
-    console.log('setStudentData() return:', results);
+    
+    //console.log('setStudentData() return:', results);
     return results.insertId;
   } catch (err) {
     console.log('Error querying database: setStudentData', err);

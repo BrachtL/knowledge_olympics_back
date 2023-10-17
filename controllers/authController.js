@@ -39,9 +39,9 @@ module.exports.login_post = async (req, res) => {
     if (type == "teacher") {
       let user = await getTeacherUserData(name);
       if(user) {
-        console.log("Start bcrypt.compare()");
+        //console.log("Start bcrypt.compare()");
         const auth = await bcrypt.compare(password, user.password);
-        console.log("Finish bcrypt.compare()");
+        //console.log("Finish bcrypt.compare()");
         console.log("AUTH: ", auth);
         if(auth) {
           //send access token to the client
@@ -74,22 +74,27 @@ module.exports.login_post = async (req, res) => {
         }
 
         let period;
+        let isActive = 0;
         if(code == process.env.OLYMPICS_PERIOD1) {
-          let period = (await getPeriodCodes()).period1;
-          if(period == 0) {
+          isActive = (await getPeriodCodes()).period1;
+          if(isActive == 0) {
             throw Error('Acesso negado: aguarde o horário da prova!')
           }
+          period = 1;
         } else if(code == process.env.OLYMPICS_PERIOD2) {
-          period  = (await getPeriodCodes()).period2;
-          if(period == 0) {
+          isActive  = (await getPeriodCodes()).period2;
+          if(isActive == 0) {
             throw Error('Acesso negado: aguarde o horário da prova!')
           }
+          period = 2;
         } else if(code == process.env.OLYMPICS_MASTER) {
           period = -1
         } else {
           throw Error('Acesso negado: identificador inválido');
         }
-        let userId = await setStudentData(name, birthdate, numberId, classroom, school, period);
+        const salt = await bcrypt.genSalt();
+        const hashedPassword = await bcrypt.hash(password, salt);
+        let userId = await setStudentData(name, birthdate, numberId, classroom, school, period, hashedPassword);
         const token = createToken(userId, type);
         console.log(`${type} ${name} logged`);
         res.status(200).json({
@@ -101,9 +106,9 @@ module.exports.login_post = async (req, res) => {
     } else if(type == "student" && logTo == 'stats') {
       let user = await getStudentData(name);
       if(user) {
-        console.log("Start bcrypt.compare()");
+        //console.log("Start bcrypt.compare()");
         const auth = await bcrypt.compare(password, user.password);
-        console.log("Finish bcrypt.compare()");
+        //console.log("Finish bcrypt.compare()");
         console.log("AUTH: ", auth);
         if(auth) {
           //send access token to the client
@@ -118,11 +123,11 @@ module.exports.login_post = async (req, res) => {
       } else {
         throw Error('incorrect user');
       }
-    }
+    } 
     
 
   } catch(e) {
-
+    console.log(e.toString());
     //res.status(400).json({});
     res.status(400).json({message: e.toString()});
   }
@@ -142,7 +147,7 @@ module.exports.logout_get = async (req, res, decodedToken) => {
   } catch(e) {
 
   }
-}
+} 
 
 
 function createToken(id, type) {
@@ -152,7 +157,7 @@ function createToken(id, type) {
   } else {
     expirationTime = 7200 //2 hours (exam duration) todo: check it, maybe it will be 1h45m
   }
-  console.log(`${type} token created with ${expirationTime}`);
+  //console.log(`${type} token created with ${expirationTime}`);
   return jwt.sign({id: id, type: type}, jwtSecret, {
     expiresIn: expirationTime 
   });
